@@ -8,4 +8,7 @@
 - text-color-primary- #050505
 - text-color-secondary- #ffffff
 - text-color-mute- #6e6e6e
-- 
+
+** FONTS
+- Stack Sans Notch
+- IBM_Plex Sans

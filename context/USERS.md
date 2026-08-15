@@ -14,7 +14,6 @@
 - Controlls the total behavior of the system.
 - Full access CRUDS and has similar or has access to other user's dashboards.
 
-
 ** COURT OWNERS
 - Court owner dashboard
 - Court listing/ owner input details of the court info
