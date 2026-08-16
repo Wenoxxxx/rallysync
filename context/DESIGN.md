@@ -10,5 +10,5 @@
 - text-color-mute- #6e6e6e
 
 ** FONTS
-- Stack Sans Notch
-- IBM_Plex Sans
+- Epic pro
+- Inter
