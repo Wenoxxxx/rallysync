@@ -1,155 +1,31 @@
-/* ── EpicPro ── */
-@font-face {
-  font-family: 'EpicPro';
-  src: url('./assets/fonts/epic-pro.ttf') format('truetype');
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
+@import "tailwindcss";
+
+@theme {
+  --color-brand-accent: #0c6017;
+  --color-brand-bg: #fffafa;
+  --color-brand-card: #c4c4c4;
+  --color-brand-text: #050505;
+  --color-brand-text-secondary: #ffffff;
+  --color-brand-text-mute: #6e6e6e;
+  --color-brand-nav-hover: #fffded;
+
+  --font-display: 'EpicPro', 'Google Sans', system-ui, sans-serif;
+  --font-sans: 'Google Sans', system-ui, 'Segoe UI', Roboto, sans-serif;
 }
 
-/* ── Google Sans ── */
-@font-face {
-  font-family: 'Google Sans';
-  src: url('./assets/fonts/google-sans/GoogleSans-Regular.ttf') format('truetype');
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'Google Sans';
-  src: url('./assets/fonts/google-sans/GoogleSans-Italic.ttf') format('truetype');
-  font-weight: 400;
-  font-style: italic;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'Google Sans';
-  src: url('./assets/fonts/google-sans/GoogleSans-Medium.ttf') format('truetype');
-  font-weight: 500;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'Google Sans';
-  src: url('./assets/fonts/google-sans/GoogleSans-MediumItalic.ttf') format('truetype');
-  font-weight: 500;
-  font-style: italic;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'Google Sans';
-  src: url('./assets/fonts/google-sans/GoogleSans-SemiBold.ttf') format('truetype');
-  font-weight: 600;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'Google Sans';
-  src: url('./assets/fonts/google-sans/GoogleSans-SemiBoldItalic.ttf') format('truetype');
-  font-weight: 600;
-  font-style: italic;
-  font-display: swap;
-}
-
-:root {
-  --sans: 'Google Sans', system-ui, 'Segoe UI', Roboto, sans-serif;
-  --heading: 'EpicPro', 'Google Sans', system-ui, sans-serif;
-  --mono: ui-monospace, Consolas, monospace;
-
-  /* COLOR PALETTE - "Global" (will be overridden by site-specific tokens in each theme) */
-  --color-bg: #ffffff;
-  --color-surface: #ffffff;
-  --color-surface-secondary: #f8f7f9;
-  --color-accent: #0c6017ff;
-  --color-text: #1e1e2e;
-
-  /* TEXT COLOR */
-  --text-color-primary: #050505;
-  --text-color-accent: #0c6017ff;
-  --text-color-secondary: #ffffff;
-  --text-color-mute: #6e6e6e;
-
-  font: 18px/145% var(--sans);
-  letter-spacing: 0.18px;
-  color-scheme: light dark;
-  color: var(--text);
-  background: var(--bg);
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-
-  @media (max-width: 1024px) {
-    font-size: 16px;
+@layer base {
+  html {
+    scroll-behavior: smooth;
   }
-}
-
-
-body {
-  margin: 0;
-}
-
-#root {
-  width: 1126px;
-  max-width: 100%;
-  margin: 0 auto;
-  text-align: center;
-  border-inline: 1px solid var(--border);
-  min-height: 100svh;
-  display: flex;
-  flex-direction: column;
-  box-sizing: border-box;
-}
-
-h1,
-h2 {
-  font-family: var(--heading);
-  font-weight: 500;
-  color: var(--text-h);
-}
-
-h1 {
-  font-size: 56px;
-  letter-spacing: -1.68px;
-  margin: 32px 0;
-
-  @media (max-width: 1024px) {
-    font-size: 36px;
-    margin: 20px 0;
+  body {
+    background-color: var(--color-brand-bg);
+    color: var(--color-brand-text);
+    font-family: var(--font-sans);
+    margin: 0;
+    -webkit-font-smoothing: antialiased;
   }
-}
-
-h2 {
-  font-size: 24px;
-  line-height: 118%;
-  letter-spacing: -0.24px;
-  margin: 0 0 8px;
-
-  @media (max-width: 1024px) {
-    font-size: 20px;
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-display);
+    font-weight: normal;
   }
-}
-
-p {
-  margin: 0;
-}
-
-code,
-.counter {
-  font-family: var(--mono);
-  display: inline-flex;
-  border-radius: 4px;
-  color: var(--text-h);
-}
-
-code {
-  font-size: 15px;
-  line-height: 135%;
-  padding: 4px 8px;
-  background: var(--code-bg);
 }
