@@ -1,0 +1,60 @@
+# Dependencies
+node_modules/
+
+# Build output and caches
+dist/
+build/
+.vite/
+*.tsbuildinfo
+
+# Package-manager caches
+.npm/
+.yarn/
+.pnpm-store/
+
+# Framework and tooling caches
+.cache/
+.parcel-cache/
+.eslintcache
+.stylelintcache
+.turbo/
+.next/
+.nuxt/
+.svelte-kit/
+.vercel/
+
+# Browser-test artifacts
+playwright-report/
+test-results/
+blob-report/
+
+# Editor swap files
+*.swp
+*.swo
+*~
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+logs/
+
+# Test and coverage output
+coverage/
+.nyc_output/
+
+# Local IDE configuration
+.vscode/
+.idea/
+
+# Operating-system files
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Temporary files
+*.tmp
+*.temp

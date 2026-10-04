@@ -1,0 +1,231 @@
+name: CI
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, edited]
+
+concurrency:
+  group: ci-pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    name: Backend tests & lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: server/package-lock.json
+
+      - name: Install backend dependencies
+        working-directory: server
+        run: npm ci
+
+      - name: Test backend
+        working-directory: server
+        run: npm test
+
+      - name: Lint backend
+        working-directory: server
+        run: npm run lint
+
+  frontend:
+    name: Frontend tests, lint & build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: app
+        run: npm ci
+
+      - name: Test frontend
+        working-directory: app
+        run: npm test
+
+      - name: Lint frontend
+        working-directory: app
+        run: npm run lint
+
+      - name: Build frontend
+        working-directory: app
+        run: npm run build
+
+  pull_request_checklist:
+    name: PR description & standards checklist
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: read
+    steps:
+      - name: Validate PR metadata
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const { data: pullRequest } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number,
+            });
+
+            const body = pullRequest.body ?? '';
+            const lines = body.split('\n');
+            const errors = [];
+
+            const changeTypes = ['feat', 'fix', 'docs', 'style', 'refactor', 'perf', 'test', 'chore', 'ci', 'build', 'revert'];
+            const selectedTypes = changeTypes.filter(type => new RegExp(`^- \\[[xX]\\] ${type}$`, 'm').test(body));
+            if (selectedTypes.length !== 1) {
+              errors.push(`Select exactly one change type. Selected: ${selectedTypes.join(', ') || 'none'}.`);
+            }
+
+            function sectionContent(title) {
+              const heading = `## ${title}`.toLowerCase();
+              const start = lines.findIndex(line => line.trim().toLowerCase() === heading);
+              if (start < 0) return '';
+              const end = lines.findIndex((line, index) => index > start && /^##\s/.test(line.trim()));
+              return lines.slice(start + 1, end < 0 ? lines.length : end)
+                .join('\n')
+                .replace(/<!--[\s\S]*?-->/g, '')
+                .trim();
+            }
+
+            if (!sectionContent('Description')) errors.push('The Description section must explain what changed and why.');
+            const testInstructions = sectionContent('How to Test');
+            if (!testInstructions || testInstructions === '1.') {
+              errors.push('The How to Test section must contain executable commands or manual scenarios.');
+            }
+
+            const requiredChecks = [
+              'Tests were added or updated, or this change does not need tests (explain above).',
+              'Relevant tests passed locally.',
+              'Relevant lint checks passed.',
+              'Build passed when the changed surface has a build.',
+              'I reviewed `CODE_STANDARDS.md` and this change follows it.',
+            ];
+            for (const label of requiredChecks) {
+              const escapedLabel = label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+              if (!new RegExp(`^- \\[[xX]\\] ${escapedLabel}$`, 'm').test(body)) {
+                errors.push(`Checklist item is not checked: ${label}`);
+              }
+            }
+
+            if (errors.length) {
+              core.setFailed(errors.join('\n'));
+            } else {
+              core.info(`Validated change type: ${selectedTypes[0]}`);
+            }
+
+  update-pr-description:
+    name: Update generated PR summary
+    if: ${{ always() && github.event.pull_request.head.repo.full_name == github.repository }}
+    needs: [backend, frontend, pull_request_checklist]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Generate actual changes summary
+        uses: actions/github-script@v8
+        env:
+          BACKEND_RESULT: ${{ needs.backend.result }}
+          FRONTEND_RESULT: ${{ needs.frontend.result }}
+          CHECKLIST_RESULT: ${{ needs.pull_request_checklist.result }}
+        with:
+          script: |
+            const { data: pullRequest } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number,
+            });
+
+            const commits = await github.paginate(github.rest.pulls.listCommits, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number,
+              per_page: 100,
+            });
+            const files = await github.paginate(github.rest.pulls.listFiles, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number,
+              per_page: 100,
+            });
+
+            const uniqueSubjects = [...new Set(commits
+              .filter(({ commit }) => (commit.parents ?? []).length <= 1)
+              .map(({ commit }) => commit.message.split('\n')[0].trim())
+              .filter(Boolean))];
+            const commitSummary = uniqueSubjects.length
+              ? uniqueSubjects.map(subject => `- ${subject}`).join('\n')
+              : '- No commit subjects available';
+
+            const MAX_FILES = 100;
+            const shownFiles = files.slice(0, MAX_FILES);
+            const additions = files.reduce((sum, file) => sum + file.additions, 0);
+            const deletions = files.reduce((sum, file) => sum + file.deletions, 0);
+            const fileRows = shownFiles.map(file => {
+              const filename = file.filename.replaceAll('|', '\\|');
+              return `| \`${filename}\` | ${file.status} | +${file.additions} | -${file.deletions} |`;
+            });
+            const fileTable = [
+              '| File | Status | Additions | Deletions |',
+              '| --- | --- | ---: | ---: |',
+              ...fileRows,
+              `| **Total (${files.length} file${files.length === 1 ? '' : 's'})** |  | **+${additions}** | **-${deletions}** |`,
+            ].join('\n');
+            const remaining = files.length > MAX_FILES
+              ? `\n\n_${files.length - MAX_FILES} additional files are visible in the GitHub diff._`
+              : '';
+
+            const resultMark = result => result === 'success' ? '[x]' : '[ ]';
+            const generated = [
+              '<!-- ci-summary:start -->',
+              '### Commits',
+              '',
+              commitSummary,
+              '',
+              '### Changed files',
+              '',
+              fileTable,
+              remaining,
+              '',
+              '### CI verification',
+              '',
+              `- ${resultMark(process.env.BACKEND_RESULT)} Backend: \`cd server && npm test && npm run lint\``,
+              `- ${resultMark(process.env.FRONTEND_RESULT)} Frontend: \`cd app && npm test && npm run lint && npm run build\``,
+              `- ${resultMark(process.env.CHECKLIST_RESULT)} PR description, change type, and code-standards checklist`,
+              '<!-- ci-summary:end -->',
+            ].join('\n');
+
+            const marker = /<!-- ci-summary:start -->[\s\S]*?<!-- ci-summary:end -->/;
+            const currentBody = pullRequest.body ?? '';
+            const body = marker.test(currentBody)
+              ? currentBody.replace(marker, generated)
+              : `${currentBody.trim()}\n\n${generated}\n`;
+            if (body === currentBody) {
+              core.info('Generated PR summary is already current');
+            } else {
+              await github.rest.pulls.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: context.issue.number,
+                body,
+              });
+              core.info(`Updated generated summary for PR #${context.issue.number}`);
+            }
